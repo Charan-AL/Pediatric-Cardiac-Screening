@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 #  run_phase1.ps1  —  Dataset preparation + Specialist training
 #  Run from the project root:
 #    cd "...\pediatric_cardiac_screening"
@@ -124,7 +124,6 @@ Log "  Checkpoints saved to : $CHECKPOINTS"
 Log "  Next step            : run .\run_phase2.ps1"
 Log "============================================================"
 Write-Host ""
-Write-Host "Best checkpoint files:"
-Get-ChildItem "$CHECKPOINTS\*\*_best.pth" -ErrorAction SilentlyContinue |
-    Select-Object FullName, @{N='Size(MB)';E={[math]::Round($_.Length/1MB,1)}} |
-    Format-Table -AutoSize
+Write-Host 'Best checkpoint files:'
+Get-ChildItem -Path $CHECKPOINTS -Filter '*_best.pth' -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $mb = [math]::Round($_.Length/1MB,1); Write-Host ('  ' + $_.FullName + '  ' + $mb + ' MB') }
+

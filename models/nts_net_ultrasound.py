@@ -294,7 +294,7 @@ class NTSNet(nn.Module):
 
 def ntsnet_without_head(checkpoint_path: str, device: str = "cpu") -> NTSNet:
     model = NTSNet(num_classes=1)
-    state = torch.load(checkpoint_path, map_location=device)
+    state = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(state["model_state_dict"], strict=False)
     model.num_classes = 0
     if hasattr(model, "classifier"):

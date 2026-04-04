@@ -190,6 +190,7 @@ def train_gmu(
     resume_gmu: str | None = None,
     patience: int = 10,
     batch_size: int | None = None,
+    num_workers: int = 0,
 ):
     set_seed(CFG.train.seed)
     device = torch.device(CFG.train.device if torch.cuda.is_available() else "cpu")
@@ -233,17 +234,17 @@ def train_gmu(
         train_ds,
         batch_size=effective_batch,
         shuffle=True,
-        num_workers=CFG.train.num_workers,
+        num_workers=num_workers,
         collate_fn=collate_fn,
-        pin_memory=True,
+        pin_memory=(num_workers > 0),
     )
     val_loader = DataLoader(
         val_ds,
         batch_size=effective_batch,
         shuffle=False,
-        num_workers=CFG.train.num_workers,
+        num_workers=num_workers,
         collate_fn=collate_fn,
-        pin_memory=True,
+        pin_memory=(num_workers > 0),
     )
 
     # ── Optimiser — only GMU + MLP parameters ──
@@ -342,6 +343,8 @@ if __name__ == "__main__":
                         help="Early stopping patience in epochs (default: 10)")
     parser.add_argument("--batch_size", type=int, default=None,
                         help="Override batch size (default: from config)")
+    parser.add_argument("--num_workers", type=int, default=0,
+                        help="DataLoader workers (default: 0, safest on Windows)")
     args = parser.parse_args()
 
     train_gmu(
@@ -354,4 +357,5 @@ if __name__ == "__main__":
         resume_gmu=args.resume_gmu,
         patience=args.patience,
         batch_size=args.batch_size,
+        num_workers=args.num_workers,
     )

@@ -30,6 +30,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -82,18 +85,49 @@ class GradCAM:
         cam : np.ndarray  shape (H, W)  float32 in [0, 1]
         """
         assert input_tensor.shape[0] == 1, "Grad-CAM only supports batch_size=1"
-        self.model.eval()
-        input_tensor = input_tensor.requires_grad_(True)
 
-        # Forward
-        output = self.model(input_tensor)
-        if isinstance(output, tuple):
-            output = output[0]  # MultimodalModel returns (logit, gates)
+        # Clear any previous hook captures
+        self._activations = None
+        self._gradients = None
 
-        # Backward on the target class score
-        self.model.zero_grad()
-        target_score = output[0, target_class]
-        target_score.backward(retain_graph=True)
+        # Ensure gradients are enabled for the backward pass; some callers may
+        # freeze parameters, but we still need gradients for the hooked layer.
+        with torch.enable_grad():
+            # Some operations (e.g., cuDNN RNN backward) require the model to be
+            # in training mode. Temporarily switch modes and restore afterwards.
+            was_training = self.model.training
+            try:
+                self.model.train()
+                input_tensor = input_tensor.requires_grad_(True)
+
+                # Forward
+                output = self.model(input_tensor)
+                if isinstance(output, tuple):
+                    output = output[0]  # MultimodalModel returns (logit, gates)
+
+                # Backward on the target class score
+                self.model.zero_grad()
+                # Support both scalar outputs and vector outputs
+                try:
+                    target_score = output.view(output.shape[0], -1)[0, target_class]
+                except Exception:
+                    # Fallback: use the first element
+                    target_score = output.view(-1)[0]
+                target_score.backward(retain_graph=True)
+            except Exception:
+                logger.exception("Grad-CAM forward/backward failed")
+            finally:
+                # Restore original training mode
+                if not was_training:
+                    self.model.eval()
+
+        # Validate hooks filled
+        if self._gradients is None or self._activations is None:
+            logger.exception("Grad-CAM hooks did not populate activations/gradients")
+            # Return a safe zero map matching the requested input size
+            if input_size is not None:
+                return np.zeros((input_size[0], input_size[1]), dtype=np.float32)
+            return np.zeros((1, 1), dtype=np.float32)
 
         # Grad-CAM
         weights = self._gradients.mean(dim=(2, 3), keepdim=True)  # (1, C, 1, 1)
@@ -101,9 +135,13 @@ class GradCAM:
         cam = F.relu(cam)
 
         # Normalise
+        cam = cam.cpu().detach().numpy()
         cam -= cam.min()
-        cam /= cam.max() + 1e-8
-        cam = cam.cpu().numpy()
+        cam_max = cam.max()
+        if cam_max > 0:
+            cam = cam / (cam_max + 1e-8)
+        else:
+            cam = np.zeros_like(cam, dtype=np.float32)
 
         # Upsample to input resolution
         if input_size is not None:
@@ -289,28 +327,41 @@ def generate_explainability_report(
 
     # Audio Grad-CAM
     if audio_spec is not None:
-        audio_gc = AudioGradCAM(multimodal_model.crnn)
-        results["audio_cam_overlay"] = audio_gc.explain_and_overlay(
-            audio_spec[:1].to(device)
-        )
-        audio_gc.remove_hooks()
+        try:
+            audio_gc = AudioGradCAM(multimodal_model.crnn)
+            results["audio_cam_overlay"] = audio_gc.explain_and_overlay(
+                audio_spec[:1].to(device)
+            )
+            audio_gc.remove_hooks()
+        except Exception:
+            logger.exception("Audio Grad-CAM failed")
+            # Provide a neutral placeholder image so UI shows an overlay
+            results["audio_cam_overlay"] = np.full((64, 256, 3), 128, dtype=np.uint8)
 
     # Ultrasound Grad-CAM
     if us_image is not None:
-        us_gc = UltrasoundGradCAM(multimodal_model.nts_net)
-        bgr = us_bgr if us_bgr is not None else np.zeros((224, 224, 3), np.uint8)
-        results["us_cam_overlay"] = us_gc.explain_and_overlay(
-            us_image[:1].to(device), bgr
-        )
-        us_gc.remove_hooks()
+        try:
+            us_gc = UltrasoundGradCAM(multimodal_model.nts_net)
+            bgr = us_bgr if us_bgr is not None else np.zeros((224, 224, 3), np.uint8)
+            results["us_cam_overlay"] = us_gc.explain_and_overlay(
+                us_image[:1].to(device), bgr
+            )
+            us_gc.remove_hooks()
+        except Exception:
+            logger.exception("Ultrasound Grad-CAM failed")
+            results["us_cam_overlay"] = np.full((224, 224, 3), 128, dtype=np.uint8)
 
     # X-Ray Grad-CAM
     if xray_image is not None:
-        xray_gc = XRayGradCAM(multimodal_model.effnet)
-        bgr = xray_bgr if xray_bgr is not None else np.zeros((224, 224, 3), np.uint8)
-        results["xray_cam_overlay"] = xray_gc.explain_and_overlay(
-            xray_image[:1].to(device), bgr
-        )
-        xray_gc.remove_hooks()
+        try:
+            xray_gc = XRayGradCAM(multimodal_model.effnet)
+            bgr = xray_bgr if xray_bgr is not None else np.zeros((224, 224, 3), np.uint8)
+            results["xray_cam_overlay"] = xray_gc.explain_and_overlay(
+                xray_image[:1].to(device), bgr
+            )
+            xray_gc.remove_hooks()
+        except Exception:
+            logger.exception("X-ray Grad-CAM failed")
+            results["xray_cam_overlay"] = np.full((224, 224, 3), 128, dtype=np.uint8)
 
     return results

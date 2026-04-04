@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 #  run_phase2.ps1  —  Surgery + GMU Fusion Training
 #  Run from the project root after run_phase1.ps1 completes:
 #    .\run_phase2.ps1
@@ -101,7 +101,8 @@ Run-Step "Train GMU Fusion Layer" {
         --val_csv     "$DATA\multimodal\multimodal_val.csv"   `
         --output_dir  "$CHECKPOINTS\gmu" `
         --patience    10 `
-        --batch_size  8
+        --batch_size  8 `
+        --num_workers 0
 }
 
 # ---------------------------------------------------------------------------
@@ -114,7 +115,6 @@ Log "  GMU checkpoint : $CHECKPOINTS\gmu\gmu_best.pth"
 Log "  Next step      : run inference / dashboard"
 Log "============================================================"
 Write-Host ""
-Write-Host "Final checkpoints:"
-Get-ChildItem "$CHECKPOINTS\**\*_best.pth" -Recurse -ErrorAction SilentlyContinue |
-    Select-Object FullName, @{N='Size(MB)';E={[math]::Round($_.Length/1MB,1)}} |
-    Format-Table -AutoSize
+Write-Host 'Final checkpoints:'
+Get-ChildItem -Path $CHECKPOINTS -Filter '*_best.pth' -Recurse -ErrorAction SilentlyContinue | ForEach-Object { $mb = [math]::Round($_.Length/1MB,1); Write-Host ('  ' + $_.FullName + '  ' + $mb + ' MB') }
+
