@@ -7,6 +7,8 @@ export default function UploadForm(){
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState(null)
   const [error, setError] = useState(null)
+  const [patientId, setPatientId] = useState('PT-001')
+  const [patientAge, setPatientAge] = useState('6')
 
   async function onSubmit(e){
     e.preventDefault()
@@ -23,7 +25,6 @@ export default function UploadForm(){
         throw new Error(`API error: ${res.status} ${txt}`)
       }
       const json = await res.json()
-      // if there are gradcam images, fetch the full report
       if(json.has_gradcam && json.report_url){
         const r = await fetch(`http://localhost:8000${json.report_url}`)
         const full = await r.json()
@@ -39,55 +40,113 @@ export default function UploadForm(){
   }
 
   return (
-    <form className="card" onSubmit={onSubmit}>
-      <label>Heart sound (WAV)</label>
-      <input type="file" accept="audio/wav" onChange={e=>setAudio(e.target.files[0])} />
+    <div className="upload-wrapper">
+      <form className="upload-panel" onSubmit={onSubmit}>
+        <h2>📋 Upload Modalities</h2>
+        
+        <div className="patient-info">
+          <div className="form-group">
+            <label>Patient ID</label>
+            <input type="text" value={patientId} onChange={e=>setPatientId(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label>Age (months)</label>
+            <input type="number" value={patientAge} onChange={e=>setPatientAge(e.target.value)} />
+          </div>
+        </div>
 
-      <label>Ultrasound (JPG/PNG)</label>
-      <input type="file" accept="image/*" onChange={e=>setUs(e.target.files[0])} />
+        <div className="form-group">
+          <label>🔊 Heart Sound (WAV)</label>
+          <input type="file" accept="audio/wav" onChange={e=>setAudio(e.target.files[0])} />
+          {audio && <span className="file-name">✓ {audio.name}</span>}
+        </div>
 
-      <label>Chest X-ray (JPG/PNG)</label>
-      <input type="file" accept="image/*" onChange={e=>setXray(e.target.files[0])} />
+        <div className="form-group">
+          <label>🖥️ Ultrasound (JPG/PNG)</label>
+          <input type="file" accept="image/*" onChange={e=>setUs(e.target.files[0])} />
+          {us && <span className="file-name">✓ {us.name}</span>}
+        </div>
 
-      <button type="submit" disabled={loading}>
-        {loading? 'Running...' : 'Run Screening'}
-      </button>
+        <div className="form-group">
+          <label>🩻 Chest X-Ray (JPG/PNG)</label>
+          <input type="file" accept="image/*" onChange={e=>setXray(e.target.files[0])} />
+          {xray && <span className="file-name">✓ {xray.name}</span>}
+        </div>
 
-      {error && <div className="error">{error}</div>}
+        <button type="submit" disabled={loading} className="btn-submit">
+          {loading? '⏳ Running Screening...' : '▶ Run Screening'}
+        </button>
+
+        {error && <div className="error-box">{error}</div>}
+      </form>
 
       {report && (
-        <div className="result">
-          <h2>{report.decision} — {report.probability_of_chd*100}%</h2>
-          <p><strong>Confidence:</strong> {report.confidence}</p>
-          <h3>Modality Reliability</h3>
-          <pre>{JSON.stringify(report.modality_reliability, null, 2)}</pre>
+        <div className="results-panel">
+          <div className={`decision-badge ${report.decision.toLowerCase()}`}>
+            {report.decision === 'REFER' 
+              ? `🚨 REFER — ${(report.probability_of_chd*100).toFixed(1)}% CHD Probability`
+              : `✅ PASS — ${((1-report.probability_of_chd)*100).toFixed(1)}% Normal`
+            }
+          </div>
 
-          {report.gradcam_images && (
-            <div className="images">
-              {report.gradcam_images.audio_gradcam && (
-                <div>
-                  <h4>Audio Grad-CAM</h4>
-                  <img src={`data:image/png;base64,${report.gradcam_images.audio_gradcam}`} alt="audio" />
-                </div>
-              )}
-              {report.gradcam_images.ultrasound_gradcam && (
-                <div>
-                  <h4>Ultrasound Grad-CAM</h4>
-                  <img src={`data:image/png;base64,${report.gradcam_images.ultrasound_gradcam}`} alt="us" />
-                </div>
-              )}
-              {report.gradcam_images.xray_gradcam && (
-                <div>
-                  <h4>X-ray Grad-CAM</h4>
-                  <img src={`data:image/png;base64,${report.gradcam_images.xray_gradcam}`} alt="xray" />
-                </div>
-              )}
+          <div className="info-section">
+            <label>Patient: {patientId} ({patientAge}mo)</label>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{width: `${report.probability_of_chd*100}%`}}></div>
+              <span className="progress-text">CHD Probability: {(report.probability_of_chd*100).toFixed(1)}%</span>
+            </div>
+          </div>
+
+          <div className="reliability-section">
+            <h3>🎛️ Modality Reliability (Gate Weights)</h3>
+            {report.modality_reliability && (
+              <div className="reliability-grid">
+                {Object.entries(report.modality_reliability).map(([mod, val]) => (
+                  <div key={mod} className="reliability-item">
+                    <label>{mod.replace('_', ' ').toUpperCase()}</label>
+                    <div className="bar-container">
+                      <div className="bar" style={{width: `${val*100}%`}}></div>
+                    </div>
+                    <span className="value">{val.toFixed(3)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {report.gradcam_images && Object.keys(report.gradcam_images).length > 0 && (
+            <div className="gradcam-section">
+              <h3>🔬 Grad-CAM Explainability</h3>
+              <div className="gradcam-grid">
+                {report.gradcam_images.audio_gradcam && (
+                  <div className="gradcam-item">
+                    <h4>🔊 Heart Sound Saliency</h4>
+                    <img src={`data:image/png;base64,${report.gradcam_images.audio_gradcam}`} alt="audio" />
+                  </div>
+                )}
+                {report.gradcam_images.ultrasound_gradcam && (
+                  <div className="gradcam-item">
+                    <h4>🖥️ Ultrasound Attention</h4>
+                    <img src={`data:image/png;base64,${report.gradcam_images.ultrasound_gradcam}`} alt="us" />
+                  </div>
+                )}
+                {report.gradcam_images.xray_gradcam && (
+                  <div className="gradcam-item">
+                    <h4>🩻 X-Ray Attention</h4>
+                    <img src={`data:image/png;base64,${report.gradcam_images.xray_gradcam}`} alt="xray" />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          <p className="advice">{report.advice}</p>
+          <div className="advice-section">
+            <h3>📝 Clinical Advice</h3>
+            <p className={`advice ${report.decision.toLowerCase()}`}>{report.advice}</p>
+            <p className="disclaimer">⚠️ This is an AI-assisted screening tool. It does NOT replace clinical judgement or formal diagnostic evaluation.</p>
+          </div>
         </div>
       )}
-    </form>
+    </div>
   )
 }
