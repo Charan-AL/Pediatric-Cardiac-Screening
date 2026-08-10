@@ -51,17 +51,17 @@ Upload audio (WAV) + images (JPG/PNG), click "Run Screening" → AI decision + G
 ```
 ┌─────────────────────────────────────────────────┐
 │     React Frontend (localhost:5173)             │
-│  - Upload: audio (WAV), ultrasound, X-ray      │
-│  - Display: decision, confidence, heatmaps     │
+│  - Upload: audio (WAV), ultrasound, X-ray       │
+│  - Display: decision, confidence, heatmaps      │
 └────────────────┬────────────────────────────────┘
                  │ FormData POST
                  ▼
 ┌─────────────────────────────────────────────────┐
 │     FastAPI Backend (localhost:8000)            │
-│  - Process files & preprocess                  │
-│  - Inference: CRNN + NTS + EfficientNet        │
-│  - Fusion: GMU gating network                  │
-│  - Return: JSON + base64 Grad-CAM images       │
+│  - Process files & preprocess                   │
+│  - Inference: CRNN + NTS + EfficientNet         │
+│  - Fusion: GMU gating network                   │
+│  - Return: JSON + base64 Grad-CAM images        │
 └─────────────────────────────────────────────────┘
 ```
 

@@ -29,15 +29,15 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    LEVEL-1 META-LEARNER (GMU)                       │
 │                                                                     │
-│  SigmoidGate(audio) → z_a ⊙ v_a  (B, 512)                        │
-│  SigmoidGate(us)    → z_u ⊙ v_u  (B, 512)                        │
-│  SigmoidGate(xray)  → z_x ⊙ v_x  (B, 512)                        │
+│  SigmoidGate(audio) → z_a ⊙ v_a  (B, 512)                          │
+│  SigmoidGate(us)    → z_u ⊙ v_u  (B, 512)                          │
+│  SigmoidGate(xray)  → z_x ⊙ v_x  (B, 512)                          │
 │                         │                                           │
 │                  Concat  →  (B, 1536)                               │
 │                         │                                           │
-│            MLP [1536→512→256→1] + Dropout(0.5)                     │
+│            MLP [1536→512→256→1] + Dropout(0.5)                      │
 │                         │                                           │
-│              BCEWithLogitsLoss ←── label (0=Pass, 1=Refer)         │
+│              BCEWithLogitsLoss ←── label (0=Pass, 1=Refer)          │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 

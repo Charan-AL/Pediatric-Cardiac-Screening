@@ -9,6 +9,7 @@ export default function App() {
     <div className="container">
       <h1>🫀 Autonomous Pediatric Cardiac Screening</h1>
       <p className="muted">Upload a WAV and/or ultrasound / x-ray images. AI will analyze all available modalities.</p>
+      {/* PHASE 1 (50%): Currently showing only audio + ultrasound models. Phase 2 will add X-ray + fusion. */}
       
       <div style={{ marginBottom: '20px' }}>
         <button 

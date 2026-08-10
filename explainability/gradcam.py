@@ -173,6 +173,10 @@ def overlay_heatmap(
     -------
     blended : (H, W, 3) uint8
     """
+    # Ensure CAM matches original image size
+    if cam.shape != original_image.shape[:2]:
+        cam = cv2.resize(cam, (original_image.shape[1], original_image.shape[0]))
+    
     heatmap = cv2.applyColorMap(np.uint8(255 * cam), colormap)
     blended = cv2.addWeighted(original_image, 1 - alpha, heatmap, alpha, 0)
     return blended
@@ -273,7 +277,7 @@ class AudioGradCAM:
     ) -> np.ndarray:
         """Returns a coloured spectrogram with Grad-CAM overlay."""
         cam = self.explain(spec_tensor)
-        spec_np = spec_tensor[0, 0].cpu().numpy()  # (64, 256) float
+        spec_np = spec_tensor[0, 0].detach().cpu().numpy()  # (64, 256) float
         return spectrogram_gradcam_overlay(spec_np, cam)
 
     def remove_hooks(self):
@@ -292,6 +296,9 @@ def generate_explainability_report(
     us_bgr: Optional[np.ndarray] = None,
     xray_bgr: Optional[np.ndarray] = None,
     device: str = "cpu",
+    audio_model_with_head: Optional[nn.Module] = None,
+    us_model_with_head: Optional[nn.Module] = None,
+    xray_model_with_head: Optional[nn.Module] = None,
 ) -> dict:
     """
     Generate Grad-CAM visualisations for each available modality.
@@ -311,6 +318,9 @@ def generate_explainability_report(
         "xray_cam_overlay": None,
         "gate_weights": None,
         "prediction": None,
+        "audio_prediction": None,  # Individual model prediction (Phase 1)
+        "ultrasound_prediction": None,  # Individual model prediction (Phase 1)
+        "xray_prediction": None,  # Individual model prediction (Phase 2)
     }
 
     # Overall prediction + gate weights (no grad needed)
@@ -324,6 +334,36 @@ def generate_explainability_report(
     results["gate_weights"] = {
         k: v.mean().item() for k, v in gate_weights.items()
     }
+
+    # Individual model predictions (Phase 1 - CRNN2D + NTS-Net)
+    # Use specialist models WITH classifier heads for accurate predictions
+    with torch.no_grad():
+        # Audio: Direct prediction from CRNN2D with classifier head
+        if audio_spec is not None and audio_model_with_head is not None:
+            try:
+                audio_logit = audio_model_with_head(audio_spec.to(device))
+                results["audio_prediction"] = torch.sigmoid(audio_logit).item()
+            except Exception as e:
+                logger.warning(f"Audio prediction failed: {e}")
+                results["audio_prediction"] = None
+        
+        # Ultrasound: Direct prediction from NTS-Net with classifier head
+        if us_image is not None and us_model_with_head is not None:
+            try:
+                us_logit = us_model_with_head(us_image.to(device))
+                results["ultrasound_prediction"] = torch.sigmoid(us_logit).item()
+            except Exception as e:
+                logger.warning(f"Ultrasound prediction failed: {e}")
+                results["ultrasound_prediction"] = None
+        
+        # X-Ray: Direct prediction from EfficientNet with classifier head (Phase 2)
+        if xray_image is not None and xray_model_with_head is not None:
+            try:
+                xray_logit = xray_model_with_head(xray_image.to(device))
+                results["xray_prediction"] = torch.sigmoid(xray_logit).item()
+            except Exception as e:
+                logger.warning(f"X-ray prediction failed: {e}")
+                results["xray_prediction"] = None
 
     # Audio Grad-CAM
     if audio_spec is not None:

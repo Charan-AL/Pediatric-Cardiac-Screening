@@ -3,18 +3,18 @@ import React from 'react';
 // Simple bar chart component for visualizing metrics
 const BarChart = ({ value, color = '#1abc9c' }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-    <div style={{ 
-      width: '100px', 
-      height: '20px', 
-      background: '#1a3a52', 
-      borderRadius: '4px', 
-      overflow: 'hidden' 
+    <div style={{
+      width: '100px',
+      height: '20px',
+      background: '#1a3a52',
+      borderRadius: '4px',
+      overflow: 'hidden'
     }}>
-      <div style={{ 
-        width: `${value * 100}%`, 
-        height: '100%', 
-        background: color, 
-        transition: 'width 0.3s' 
+      <div style={{
+        width: `${value * 100}%`,
+        height: '100%',
+        background: color,
+        transition: 'width 0.3s'
       }}></div>
     </div>
     <span style={{ color: '#e0e0e0', fontWeight: '600', minWidth: '50px' }}>
@@ -30,13 +30,13 @@ const MetricCard = ({ title, metrics, color }) => (
     <div className="metric-content">
       <label>Accuracy</label>
       <BarChart value={metrics.accuracy} color={color} />
-      
+
       <label style={{ marginTop: '8px' }}>Sensitivity (catches disease)</label>
       <BarChart value={metrics.sensitivity} color={color} />
-      
+
       <label style={{ marginTop: '8px' }}>Specificity (avoids false alarms)</label>
       <BarChart value={metrics.specificity} color={color} />
-      
+
       <label style={{ marginTop: '8px' }}>F1 Score (balance)</label>
       <BarChart value={metrics.f1} color={color} />
     </div>
@@ -87,22 +87,22 @@ const ModelMetrics = () => {
 
       {/* Metrics Grid */}
       <div className="metrics-grid">
-        <MetricCard 
+        <MetricCard
           title="🎧 Heart Sound Specialist (Audio)"
           metrics={metricsData.audio}
           color="#3498db"
         />
-        <MetricCard 
+        <MetricCard
           title="🫀 Ultrasound Specialist"
           metrics={metricsData.ultrasound}
           color="#2ecc71"
         />
-        <MetricCard 
+        <MetricCard
           title="🏥 X-Ray Specialist"
           metrics={metricsData.xray}
           color="#e74c3c"
         />
-        <MetricCard 
+        <MetricCard
           title="🤝 Final Decision (Fusion)"
           metrics={metricsData.fusion}
           color="#f39c12"
@@ -112,7 +112,7 @@ const ModelMetrics = () => {
       {/* What is REFER vs PASS */}
       <div className="what-is-refer">
         <h3>❓ What Does REFER vs PASS Mean?</h3>
-        
+
         <div className="refer-grid">
           <div className="refer-item refer">
             <h4>🚨 REFER: ≥50% Probability</h4>
@@ -151,7 +151,7 @@ const ModelMetrics = () => {
       {/* How It Works */}
       <div className="how-it-works">
         <h3>🔍 How Does This AI Work?</h3>
-        
+
         <div className="steps">
           <div className="step">
             <h4>Step 1️⃣: Three Experts Listen</h4>

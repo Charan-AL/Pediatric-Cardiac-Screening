@@ -72,6 +72,10 @@ app.add_middleware(
 class ModelRegistry:
     model: Optional[MultimodalModel] = None
     device: str = "cpu"
+    # Specialist models WITH classifier heads for individual predictions
+    crnn_with_head: Optional[torch.nn.Module] = None
+    nts_with_head: Optional[torch.nn.Module] = None
+    effnet_with_head: Optional[torch.nn.Module] = None
 
 
 registry = ModelRegistry()
@@ -118,6 +122,39 @@ def load_model():
 
     model.eval()
     registry.model = model
+    
+    # Also load specialist models WITH classifier heads for individual predictions
+    print("Loading specialist models with classifier heads...")
+    try:
+        from models.crnn_heart_sound import CRNN2D
+        registry.crnn_with_head = CRNN2D(num_classes=1)
+        ckpt = torch.load(AUDIO_CKPT, map_location=dev, weights_only=False)
+        registry.crnn_with_head.load_state_dict(ckpt["model_state_dict"], strict=False)
+        registry.crnn_with_head.eval().to(dev)
+        print("✓ Audio model with classifier loaded")
+    except Exception as e:
+        print(f"⚠ Audio model loading failed: {e}")
+    
+    try:
+        from models.nts_net_ultrasound import NTSNet
+        registry.nts_with_head = NTSNet(num_classes=1)
+        ckpt = torch.load(US_CKPT, map_location=dev, weights_only=False)
+        registry.nts_with_head.load_state_dict(ckpt["model_state_dict"], strict=False)
+        registry.nts_with_head.eval().to(dev)
+        print("✓ Ultrasound model with classifier loaded")
+    except Exception as e:
+        print(f"⚠ Ultrasound model loading failed: {e}")
+    
+    try:
+        from models.efficientnet_xray import EfficientNetV2XRay
+        registry.effnet_with_head = EfficientNetV2XRay(num_classes=1)
+        ckpt = torch.load(XRAY_CKPT, map_location=dev, weights_only=False)
+        registry.effnet_with_head.load_state_dict(ckpt["model_state_dict"], strict=False)
+        registry.effnet_with_head.eval().to(dev)
+        print("✓ X-ray model with classifier loaded")
+    except Exception as e:
+        print(f"⚠ X-ray model loading failed: {e}")
+    
     print("Model ready.")
 
 
@@ -215,6 +252,10 @@ async def predict(
         us_bgr=us_bgr,
         xray_bgr=xray_bgr,
         device=dev,
+        # Pass specialist models WITH classifier heads
+        audio_model_with_head=registry.crnn_with_head,
+        us_model_with_head=registry.nts_with_head,
+        xray_model_with_head=registry.effnet_with_head,
     )
 
     probability = report_data["prediction"]
@@ -240,6 +281,9 @@ async def predict(
         "decision": label,
         "probability_of_chd": round(probability, 4),
         "confidence": round(confidence, 4),
+        "audio_prediction": report_data["audio_prediction"],  # Phase 1
+        "ultrasound_prediction": report_data["ultrasound_prediction"],  # Phase 1
+        "xray_prediction": report_data.get("xray_prediction"),  # Phase 2
         "modality_reliability": {
             k: round(v, 4) for k, v in gate_info.items()
         },
