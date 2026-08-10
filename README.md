@@ -3,7 +3,7 @@
 > **Stacked Multimodal Ensemble for Congenital Heart Disease Detection**  
 > Detects CHD (VSD, ASD, Cardiomegaly, Pulmonary Plethora) from Heart Sounds, Echocardiograms, and Chest X-Rays using a two-level ensemble.
 
----
+----
 
 ## Architecture Overview
 
