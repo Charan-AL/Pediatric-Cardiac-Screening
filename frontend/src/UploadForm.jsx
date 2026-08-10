@@ -1,40 +1,38 @@
-import React, {useState} from 'react'
+import React, { useState } from 'react'
 
-export default function UploadForm(){
+export default function UploadForm() {
   const [audio, setAudio] = useState(null)
   const [us, setUs] = useState(null)
   const [xray, setXray] = useState(null)
   const [loading, setLoading] = useState(false)
   const [report, setReport] = useState(null)
   const [error, setError] = useState(null)
-  const [patientId, setPatientId] = useState('PT-001')
-  const [patientAge, setPatientAge] = useState('6')
 
-  async function onSubmit(e){
+  async function onSubmit(e) {
     e.preventDefault()
     setLoading(true); setError(null); setReport(null)
-    try{
+    try {
       const fd = new FormData()
-      if(audio) fd.append('audio_file', audio)
-      if(us) fd.append('us_file', us)
-      if(xray) fd.append('xray_file', xray)
+      if (audio) fd.append('audio_file', audio)
+      if (us) fd.append('us_file', us)
+      if (xray) fd.append('xray_file', xray)
 
       const res = await fetch('http://localhost:8000/predict', { method: 'POST', body: fd })
-      if(!res.ok){
+      if (!res.ok) {
         const txt = await res.text()
         throw new Error(`API error: ${res.status} ${txt}`)
       }
       const json = await res.json()
-      if(json.has_gradcam && json.report_url){
+      if (json.has_gradcam && json.report_url) {
         const r = await fetch(`http://localhost:8000${json.report_url}`)
         const full = await r.json()
-        setReport({...json, gradcam_images: full.gradcam_images})
+        setReport({ ...json, gradcam_images: full.gradcam_images })
       } else {
         setReport(json)
       }
-    }catch(err){
+    } catch (err) {
       setError(err.message)
-    }finally{
+    } finally {
       setLoading(false)
     }
   }
@@ -43,59 +41,27 @@ export default function UploadForm(){
     <div className="upload-wrapper">
       <form className="upload-panel" onSubmit={onSubmit}>
         <h2>📋 Upload Modalities</h2>
-        
-        <div className="patient-info">
-          <div className="form-group">
-            <label>Patient ID</label>
-            <input type="text" value={patientId} onChange={e=>setPatientId(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Age (months)</label>
-            <input type="number" value={patientAge} onChange={e=>setPatientAge(e.target.value)} />
-          </div>
-        </div>
 
         <div className="form-group">
           <label>🔊 Heart Sound (WAV)</label>
-          <input type="file" accept="audio/wav" onChange={e=>setAudio(e.target.files[0])} />
+          <input type="file" accept="audio/wav" onChange={e => setAudio(e.target.files[0])} />
           {audio && <span className="file-name">✓ {audio.name}</span>}
-          {report?.audio_prediction !== undefined && (
-            <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(52, 152, 219, 0.15)', borderRadius: '4px', borderLeft: '3px solid #3498db' }}>
-              <p style={{ margin: '4px 0', fontSize: '12px', color: '#aaa' }}>📊 Model Output:</p>
-              <p style={{ margin: '4px 0', fontWeight: 'bold', color: '#3498db' }}>{(report.audio_prediction * 100).toFixed(1)}% CHD Probability</p>
-              <p style={{ margin: '4px 0', fontSize: '11px', color: '#888' }}>Status: {report.audio_prediction > 0.5 ? '⚠️ Abnormal' : '✓ Normal'}</p>
-            </div>
-          )}
         </div>
 
         <div className="form-group">
           <label>🫀 Ultrasound (JPG/PNG)</label>
-          <input type="file" accept="image/*" onChange={e=>setUs(e.target.files[0])} />
+          <input type="file" accept="image/*" onChange={e => setUs(e.target.files[0])} />
           {us && <span className="file-name">✓ {us.name}</span>}
-          {report?.ultrasound_prediction !== undefined && (
-            <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(46, 204, 113, 0.15)', borderRadius: '4px', borderLeft: '3px solid #2ecc71' }}>
-              <p style={{ margin: '4px 0', fontSize: '12px', color: '#aaa' }}>📊 Model Output:</p>
-              <p style={{ margin: '4px 0', fontWeight: 'bold', color: '#2ecc71' }}>{(report.ultrasound_prediction * 100).toFixed(1)}% CHD Probability</p>
-              <p style={{ margin: '4px 0', fontSize: '11px', color: '#888' }}>Status: {report.ultrasound_prediction > 0.5 ? '⚠️ Abnormal' : '✓ Normal'}</p>
-            </div>
-          )}
         </div>
 
         <div className="form-group">
           <label>🩻 Chest X-Ray (JPG/PNG)</label>
-          <input type="file" accept="image/*" onChange={e=>setXray(e.target.files[0])} />
+          <input type="file" accept="image/*" onChange={e => setXray(e.target.files[0])} />
           {xray && <span className="file-name">✓ {xray.name}</span>}
-          {report?.xray_prediction !== undefined && (
-            <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(231, 76, 60, 0.15)', borderRadius: '4px', borderLeft: '3px solid #e74c3c' }}>
-              <p style={{ margin: '4px 0', fontSize: '12px', color: '#aaa' }}>📊 Model Output:</p>
-              <p style={{ margin: '4px 0', fontWeight: 'bold', color: '#e74c3c' }}>{(report.xray_prediction * 100).toFixed(1)}% CHD Probability</p>
-              <p style={{ margin: '4px 0', fontSize: '11px', color: '#888' }}>Status: {report.xray_prediction > 0.5 ? '⚠️ Abnormal' : '✓ Normal'}</p>
-            </div>
-          )}
         </div>
 
         <button type="submit" disabled={loading} className="btn-submit">
-          {loading? '⏳ Running Screening...' : '▶ Run Screening'}
+          {loading ? '⏳ Running Screening...' : '▶ Run Screening'}
         </button>
 
         {error && <div className="error-box">{error}</div>}
@@ -105,8 +71,8 @@ export default function UploadForm(){
         <div className="results-panel">
           {/* Phase 1: Individual Model Predictions */}
           <div style={{ padding: '16px', background: 'rgba(26, 58, 82, 0.6)', borderRadius: '6px', marginBottom: '16px' }}>
-            <h3 style={{ color: '#1abc9c', marginTop: 0 }}>📊 Phase 1: Individual Model Predictions</h3>
-            
+            <h3 style={{ color: '#1abc9c', marginTop: 0 }}>📊 Individual Model Predictions</h3>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '12px' }}>
               {/* Audio Model Result */}
               {report.audio_prediction !== undefined && (
@@ -119,7 +85,7 @@ export default function UploadForm(){
                   </div>
                 </div>
               )}
-              
+
               {/* Ultrasound Model Result */}
               {report.ultrasound_prediction !== undefined && (
                 <div style={{ padding: '12px', background: 'rgba(46, 204, 113, 0.2)', borderLeft: '3px solid #2ecc71', borderRadius: '4px' }}>
@@ -133,15 +99,15 @@ export default function UploadForm(){
               )}
             </div>
 
-            <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 165, 0, 0.1)', border: '1px solid #f39c12', borderRadius: '4px', color: '#f39c12', fontSize: '13px' }}>
+            {/* <div style={{ marginTop: '12px', padding: '8px', background: 'rgba(255, 165, 0, 0.1)', border: '1px solid #f39c12', borderRadius: '4px', color: '#f39c12', fontSize: '13px' }}>
               <strong>ℹ️ Note:</strong> Phase 1 shows individual specialist predictions. In Phase 2, these will be intelligently fused using GMU (Gated Multimodal Unit) for a final ensemble decision.
-            </div>
+            </div> */}
           </div>
-          
+
           {/* Phase 1: X-Ray Model Individual Output */}
           {report.xray_prediction !== undefined && (
             <div style={{ padding: '16px', background: 'rgba(26, 58, 82, 0.6)', borderRadius: '6px', marginBottom: '16px' }}>
-              <h3 style={{ color: '#e74c3c', marginTop: 0 }}>📊 Phase 1: X-Ray Prediction (EfficientNetV2)</h3>
+              <h3 style={{ color: '#e74c3c', marginTop: 0 }}>📊 X-Ray Prediction (EfficientNetV2)</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginTop: '12px' }}>
                 <div style={{ padding: '12px', background: 'rgba(231, 76, 60, 0.2)', borderLeft: '3px solid #e74c3c', borderRadius: '4px' }}>
                   <div style={{ marginTop: '8px' }}>
@@ -158,17 +124,17 @@ export default function UploadForm(){
           {report.decision && (
             <>
               <div className={`decision-badge ${report.decision.toLowerCase()}`}>
-                {report.decision === 'REFER' 
-                  ? `🚨 REFER — ${(report.probability_of_chd*100).toFixed(1)}% CHD Probability`
-                  : `✅ PASS — ${((1-report.probability_of_chd)*100).toFixed(1)}% Normal`
+                {report.decision === 'REFER'
+                  ? `🚨 REFER — ${(report.probability_of_chd * 100).toFixed(1)}% CHD Probability`
+                  : `✅ PASS — ${((1 - report.probability_of_chd) * 100).toFixed(1)}% Normal`
                 }
               </div>
-              
+
               <div className="info-section">
-                <label>Patient: {patientId} ({patientAge}mo)</label>
+                <label>Overall Ensemble Confidence</label>
                 <div className="progress-bar">
-                  <div className="progress-fill" style={{width: `${report.probability_of_chd*100}%`}}></div>
-                  <span className="progress-text">CHD Probability: {(report.probability_of_chd*100).toFixed(1)}%</span>
+                  <div className="progress-fill" style={{ width: `${report.probability_of_chd * 100}%` }}></div>
+                  <span className="progress-text">CHD Probability: {(report.probability_of_chd * 100).toFixed(1)}%</span>
                 </div>
               </div>
 
@@ -180,7 +146,7 @@ export default function UploadForm(){
                       <div key={mod} className="reliability-item">
                         <label>{mod.replace('_', ' ').toUpperCase()}</label>
                         <div className="bar-container">
-                          <div className="bar" style={{width: `${val*100}%`}}></div>
+                          <div className="bar" style={{ width: `${val * 100}%` }}></div>
                         </div>
                         <span className="value">{val.toFixed(3)}</span>
                       </div>
