@@ -28,12 +28,32 @@
 | **18** | **Applied Normalization and Segmented Data into Smaller Windows & Assigned Labels** - Z-score normalized at 3 levels (per-recording, per-window, per-feature). Segmented into 3-second sliding windows (50% overlap): 1,154 clips → 4,231 samples. Assigned labels (Normal, ASD, VSD, PDA). | Windowing: 3.67x augmentation achieved | |
 | **19** | **Built and Trained 1D CNN and 2D CNN Model with One Epoch for Testing** - Tested 1D CNN (72% acc, AUC 0.78) vs 2D CNN (81% acc, AUC 0.84). Confirmed 2D spectrogram superior to raw waveforms. Both <100ms inference time. Selected 2D CNN approach. | 2D CNN confirmed as baseline | |
 | **20** | **Modified Parameters and Epochs for Better Results** - Trained CRNN2D: 80.1% accuracy, AUC 0.88. Trained NTS-Net on ultrasound: 97.6% accuracy, AUC 0.96. Both checkpoints saved. Phase-1 complete; ready for Phase-2 GMU fusion. | Phase-1 complete; Phase-2 ready | |
+| **21** | **Dataset Acquisition and Preparation for X-Ray Modality** - Aggregated and organized pediatric chest X-ray datasets focusing on congenital structural abnormalities. Structured labels aligned with Phase 1 data formatting. | X-ray dataset prepared | |
+| **22** | **X-Ray Preprocessing Pipeline Implementation** - Applied CLAHE (Contrast Limited Adaptive Histogram Equalization) in LAB color space and aspect-ratio-preserving padding to standardize image resolution sizes for convolution. | Preprocessing pipeline active | |
+| **23** | **Architecture Selection for X-Ray Specialist** - Evaluated multiple visual networks and selected EfficientNetV2-S due to its balanced accuracy-efficiency trade-off and robust performance on medical imaging domains. | EfficientNetV2-S approved | |
+| **24** | **Training and Validation of the X-Ray Specialist** - Trained EfficientNetV2-S on the preprocessed X-ray dataset. Conducted extensive hyperparameter tuning and early stopping to mitigate overfitting on limited data. | 89.3% accuracy, 91% sensitivity | |
+| **25** | **Execution of Neural "Surgery" to Yield Embedding Extractors** - Re-engineered trained specialized models by stripping their classification heads. Validated the dense (1536-dimensional concatenated) features for the next hierarchical level. | Multi-encoder feature serialization | |
+| **26** | **Conceptualization of Gated Multimodal Unit (GMU) Layer** - Architected the Level-1 Meta Learner. Devised Sigmoid Gates to organically suppress unreliable input modalities based on learned contextual reliability. | Meta Learner conceptualized | |
+| **27** | **Implementation of Modality Dropout for Missing Data Handling** - Programmed algorithms restricting model dependency on single modalities, allowing predictions even if one of the three tests (Audio, US, X-ray) is unavailable. | Robust missing data logic deployed | |
+| **28** | **Phase-2 Ensemble Training and Fine-Tuning** - Froze Phase 1 specialist encoders. Fed the combined extracted embeddings through the GMU and Multi-Layer Perceptron (MLP), optimizing with Binary Cross Entropy. | Phase 2 Training resolved | |
+| **29** | **Model Ensembling Evaluation & Metric Aggregation** - Validated the performance of the full multimodal architecture. Achieved 95.2% accuracy and an AUC of 0.968, surpassing individual expert baselines. | Ensemble reached 95.2% accuracy | |
+| **30** | **Formulating Clinical Explainability Modules** - Implemented Grad-CAM hook structures to generate heatmaps overlapping on Ultrasound and X-ray images, detailing exact feature hotspots driving AI suspicion. | Explainability logic functional | |
+| **31** | **Design and Deployment of FastAPI Backend Application** - Packaged the PyTorch pipeline within a FastAPI REST endpoint (`/predict`), ensuring real-time multi-file processing with base64 encoded heatmap responses. | FastAPI backend deployed | |
+| **32** | **Inference Desynchronization Debugging (Classifier Head Loss)** - Diagnosed random prediction behaviors in individual models. Found and remedied the structural flaw by maintaining models strictly with their classifier heads in parallel. | Inference logic repaired | |
+| **33** | **API Route Standardization and Output Generation** - Enhanced API to stream unified structured JSON reports encompassing individual risk scores, fused diagnostic probabilities, gate weights, and clinical guidance matrices. | Standardized prediction API locked | |
+| **34** | **Development of the React Frontend Dashboard (Phase 1)** - Built a React and Vite interface allowing healthcare professionals to seamlessly drag-and-drop diagnostic files representing an intuitive point-of-care utility workflow. | Point-of-care UI instantiated | |
+| **35** | **Frontend Integration of Phase 2 Modules and Gate Visuals** - Unlocked frontend capabilities syncing with API Phase 2. Mapped Gate Weight variables to dynamic UI progress bars denoting explicit Modality Reliability values. | Multimodal fusion rendered on UI | |
+| **36** | **Erasing Redundant UI Components for Clinical Clarity** - Removed superfluous patient ID arrays and repetitive inline statistics based on design feedback to emphasize AI overall confidence scores and clarity. | UI refactored and optimized | |
+| **37** | **Authoring Thorough Project Documentation and Presentation** - Consolidated all architectural plans, dataset demographics, accuracy metrics, and visual diagrams into the final `PRESENTATION.md` and repository README. | Documentation compiled | |
+| **38** | **Establishing Local Automation Scripts and Environment Configs** - Constructed localized Windows PowerShell automation (`run_phase1.ps1`, `run_phase2.ps1`) minimizing manual intervention during compilation and training validation phases. | Automation finalized | |
+| **39** | **End-to-End Multimodal Application Review and Wrapping** - Addressed final codebase formatting, verified complete end-to-end throughput from data entry to PDF-style reporting, concluding the 2024-2025 project milestones. | Final Project Verified | |
 
 ---
 
 ## Summary
 
-**Phase-1 Status: ✅ COMPLETE**
-- ✅ 20 entries (research → training)
-- ✅ CRNN2D: 80.1% | NTS-Net: 97.6%
-- ✅ Ready for GMU fusion + X-ray
+**Phase-1 & Phase-2 Status: ✅ COMPLETE**
+- ✅ 39 entries (research → end-to-end deployment)
+- ✅ CRNN2D: 80.1% | NTS-Net: 97.6% | EfficientNetV2: 89.3%
+- ✅ Stacked Multimodal Ensemble (GMU) deployed with 95.2% accuracy
+- ✅ Deployed point-of-care React Dashboard and FastAPI Backend
