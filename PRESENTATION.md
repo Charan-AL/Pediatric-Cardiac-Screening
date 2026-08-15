@@ -2,14 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the **Phase-1 Baseline Model Training** and **Data Preprocessing** completed for the 50% project milestone. We have successfully implemented and trained **two specialist AI models**:
 
-1. **🎧 CRNN2D for Heart Sound Classification** (Audio modality)
-2. **🫀 NTS-Net for Ultrasound Structural Defect Detection** (Ultrasound modality)
-
-Both models have been trained, validated, and saved as checkpoints. The X-ray model will be completed in Phase-2 (next 50%).
-
----
 
 ## Part 1: Data Preprocessing Pipeline
 
